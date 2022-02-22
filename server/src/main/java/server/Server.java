@@ -1,5 +1,7 @@
 package server;
 
+import com.sun.security.ntlm.Client;
+
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -44,17 +46,36 @@ public class Server {
         }
     }
 
-    public void broadcastMsg(ClientHandler sender, String msg){
+    public void broadcastMsg(ClientHandler sender, String msg) {
         String message = String.format("[%s]: %s", sender.getNickName(), msg);
 
         for (ClientHandler c : clients) {
             c.sendMsg(message);
         }
     }
-    public void subscribe (ClientHandler clientHandler) {
+
+    // метод, для отправки сообщения конкретному человеку
+    public void broadcastMsgToNickname(ClientHandler sender, String receiver, String msg) {
+        String message = String.format("%s to %s: %s", sender.getNickName(), receiver, msg);
+
+        for (ClientHandler c : clients) {
+            if (c.getNickName().equals(receiver)) {
+                c.sendMsg(message);
+                if (!sender.getNickName().equals(receiver)) {
+                    sender.sendMsg(message);
+                }
+                return;
+            }
+        }
+        sender.sendMsg("Получатель " + receiver + " не найден");
+    }
+
+
+    public void subscribe(ClientHandler clientHandler) {
         clients.add(clientHandler);
     }
-    public void unsubscribe (ClientHandler clientHandler) {
+
+    public void unsubscribe(ClientHandler clientHandler) {
         clients.remove(clientHandler);
     }
 
