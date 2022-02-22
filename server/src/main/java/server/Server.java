@@ -12,9 +12,11 @@ public class Server {
     private final int PORT = 8189;
 
     private List<ClientHandler> clients;
+    private AuthService authService;
 
     public Server() {
         clients = new CopyOnWriteArrayList<>();
+        authService = new SimpleAuthService();
 
         try {
             server = new ServerSocket(PORT);
@@ -23,7 +25,7 @@ public class Server {
             while (true) {
                 socket = server.accept();
                 System.out.println("Client connected");
-                clients.add(new ClientHandler(this, socket));
+                new ClientHandler(this, socket);
             }
 
         } catch (IOException e) {
@@ -47,5 +49,14 @@ public class Server {
             c.sendMsg(msg);
         }
     }
+    public void subscribe (ClientHandler clientHandler) {
+        clients.add(clientHandler);
+    }
+    public void unsubscribe (ClientHandler clientHandler) {
+        clients.remove(clientHandler);
+    }
 
+    public AuthService getAuthService() {
+        return authService;
+    }
 }
