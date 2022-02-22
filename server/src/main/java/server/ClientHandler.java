@@ -42,7 +42,7 @@ public class ClientHandler {
                                         .getNicknameByLoginAndPassword(token[1], token[2]);
                                 if ((newNick != null)) {
                                     nickName = newNick;
-                                    sendMsg("/auth_ok");
+                                    sendMsg("/auth_ok " + nickName);
                                     authenticated = true;
                                     server.subscribe(this);
                                     break;
@@ -61,7 +61,7 @@ public class ClientHandler {
                             break;
                         }
 
-                        server.broadcastMsg(str);
+                        server.broadcastMsg(this, str);
                     }
                 } catch (IOException e) {
                     e.printStackTrace();
@@ -87,5 +87,9 @@ public class ClientHandler {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    public String getNickName() {
+        return nickName;
     }
 }
