@@ -14,6 +14,7 @@ public class ClientHandler {
     private DataOutputStream out;
     private boolean authenticated;
     private String nickName;
+    private String login;
 
 
     public ClientHandler(Server server, Socket socket) {
@@ -41,15 +42,27 @@ public class ClientHandler {
                                 }
                                 String newNick = server.getAuthService()
                                         .getNicknameByLoginAndPassword(token[1], token[2]);
+                                login = token[1];
                                 if ((newNick != null)) {
-                                    nickName = newNick;
-                                    sendMsg("/auth_ok " + nickName);
-                                    authenticated = true;
-                                    server.subscribe(this);
-                                    break;
+                                    if (!server.isLoginAuthenticated(login)) {
+                                        nickName = newNick;
+                                        sendMsg("/auth_ok " + nickName);
+                                        authenticated = true;
+                                        server.subscribe(this);
+                                        break;
+                                    } else {
+                                        sendMsg("Учетная запись уже используется");
+                                    }
                                 } else {
                                     sendMsg("Логин/пароль не совпали");
                                 }
+                            }
+                            if (str.startsWith("/reg")) {
+                                String[] token = str.split(" ");
+                                if (token.length < 4) {
+                                    continue;
+                                }
+
                             }
                         }
                     }
@@ -101,5 +114,9 @@ public class ClientHandler {
 
     public String getNickName() {
         return nickName;
+    }
+
+    public String getLogin() {
+        return login;
     }
 }
