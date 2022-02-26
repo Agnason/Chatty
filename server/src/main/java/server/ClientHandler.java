@@ -4,8 +4,10 @@ import org.omg.CORBA.StringHolder;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
+import java.io.EOFException;
 import java.io.IOException;
 import java.net.Socket;
+import java.net.SocketTimeoutException;
 
 public class ClientHandler {
     private Server server;
@@ -26,9 +28,13 @@ public class ClientHandler {
             out = new DataOutputStream(socket.getOutputStream());
 
             new Thread(() -> {
+
                 try {
+                    socket.setSoTimeout(20000);
+                    sendMsg("У Вас есть 20 сек для авторизации");
                     // цикл аутентификации
                     while (true) {
+
                         String str = in.readUTF();
                         if (str.startsWith("/")) {
                             if (str.equals("/end")) {
@@ -62,12 +68,18 @@ public class ClientHandler {
                                 if (token.length < 4) {
                                     continue;
                                 }
-
+                                if (server.getAuthService()
+                                        .registration(token[1], token[2], token[3])) {
+                                    sendMsg("/reg_ok");
+                                } else {
+                                    sendMsg("/reg_incorrect");
+                                }
                             }
                         }
                     }
                     // цикл работы
                     while (authenticated) {
+                        socket.setSoTimeout(0);
                         String str = in.readUTF();
                         if (str.startsWith("/")) {
                             if (str.equals("/end")) {
@@ -86,8 +98,14 @@ public class ClientHandler {
                             server.broadcastMsg(this, str);
                         }
                     }
+                // обработка SocketTimeOutException
+                } catch (SocketTimeoutException e) {
+                    sendMsg("/end");
+
                 } catch (IOException e) {
                     e.printStackTrace();
+
+
                 } finally {
                     server.unsubscribe(this);
                     System.out.println("Client disconnected");
