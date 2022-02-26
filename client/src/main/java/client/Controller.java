@@ -1,5 +1,7 @@
 package client;
 
+
+import constants.Command;
 import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
@@ -23,6 +25,7 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.Socket;
+import java.net.SocketTimeoutException;
 import java.net.URL;
 import java.net.UnknownHostException;
 import java.util.ResourceBundle;
@@ -45,7 +48,7 @@ public class Controller implements Initializable {
 
     private Socket socket;
     private static final int PORT = 8189;
-    private static final String ADDRESS = "localhost";
+    private static final String ADDRESS = Command.ADDRESS;
 
     private DataInputStream in;
     private DataOutputStream out;
@@ -81,7 +84,7 @@ public class Controller implements Initializable {
                 System.out.println("bye");
                 if (socket != null && !socket.isClosed()) {
                     try {
-                        out.writeUTF("/end");
+                        out.writeUTF(Command.END);
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
@@ -129,15 +132,19 @@ public class Controller implements Initializable {
                 try {
                     // цикл аутентификации
                     while (true) {
+
                         String str = in.readUTF();
-                        if (str.startsWith("/")) {
-                            if (str.equals("/end")) {
+                        if (str.startsWith(Command.FLASH)) {
+                            if (str.equals(Command.END)) {
                                 break;
                             }
-                            if (str.startsWith("/auth_ok")) {
+                            if (str.startsWith(Command.AUTH_OK)) {
                                 nickName = str.split(" ")[1];
                                 setAuthenticated(true);
                                 break;
+                            }
+                            if (str.equals(Command.REG_OK) || str.equals(Command.REG_NO)) {
+                            regController.result(str);
                             }
 
                         } else {
@@ -150,11 +157,11 @@ public class Controller implements Initializable {
                     while (authenticated) {
                         String str = in.readUTF();
 
-                        if (str.startsWith("/")) {
-                            if (str.equals("/end")) {
+                        if (str.startsWith(Command.FLASH)) {
+                            if (str.equals(Command.END)) {
                                 break;
                             }
-                            if (str.startsWith("/clientlist")) {
+                            if (str.startsWith(Command.CLIENTLIST)) {
                                 String[] token = str.split(" ");
                                 Platform.runLater(() -> {
                                     clientList.getItems().clear();
@@ -169,6 +176,7 @@ public class Controller implements Initializable {
                         }
 
                     }
+
                 } catch (IOException e) {
                     e.printStackTrace();
                 } finally {
@@ -191,7 +199,7 @@ public class Controller implements Initializable {
     private void setTitle(String nickname) {
         String title;
         if (nickname.equals("")) {
-            title = "Chatty";
+            title = Command.TITLE;
         } else {
             title = String.format("Chatty_%s", nickname);
         }
