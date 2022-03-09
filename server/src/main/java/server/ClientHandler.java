@@ -56,6 +56,7 @@ public class ClientHandler {
                                         sendMsg(Command.AUTH_OK + " " + nickName);
                                         authenticated = true;
                                         server.subscribe(this);
+                                        socket.setSoTimeout(0);
                                         break;
                                     } else {
                                         sendMsg("Учетная запись уже используется");
@@ -80,7 +81,7 @@ public class ClientHandler {
                     }
                     // цикл работы
                     while (authenticated) {
-                        socket.setSoTimeout(0);
+
                         String str = in.readUTF();
                         if (str.startsWith(Command.FLASH)) {
                             if (str.equals(Command.END)) {

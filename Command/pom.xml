@@ -9,16 +9,7 @@
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>client</artifactId>
-    <dependencies>
-        <dependency>
-            <groupId>ru.gb</groupId>
-            <artifactId>Command</artifactId>
-            <version>1.0-SNAPSHOT</version>
-            <scope>compile</scope>
-        </dependency>
-    </dependencies>
-
+    <artifactId>Command</artifactId>
 
     <properties>
         <maven.compiler.source>8</maven.compiler.source>
