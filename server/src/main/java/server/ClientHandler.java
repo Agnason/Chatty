@@ -1,11 +1,14 @@
 package server;
 
+import constants.Command;
 import org.omg.CORBA.StringHolder;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
+import java.io.EOFException;
 import java.io.IOException;
 import java.net.Socket;
+import java.net.SocketTimeoutException;
 
 public class ClientHandler {
     private Server server;
@@ -26,52 +29,106 @@ public class ClientHandler {
             out = new DataOutputStream(socket.getOutputStream());
 
             new Thread(() -> {
+
                 try {
+                    socket.setSoTimeout(20000);
                     // цикл аутентификации
                     while (true) {
+
                         String str = in.readUTF();
-                        if (str.startsWith("/")) {
-                            if (str.equals("/end")) {
-                                sendMsg("/end");
+                        if (str.startsWith(Command.FLASH)) {
+                            if (str.equals(Command.END)) {
+                                sendMsg(Command.END);
                                 break;
                             }
-                            if (str.startsWith("/auth")) {
+                            if (str.startsWith(Command.AUTH)) {
                                 String[] token = str.split(" ", 3);
                                 if (token.length < 3) {
                                     continue;
                                 }
-                                String newNick = server.getAuthService()
-                                        .getNicknameByLoginAndPassword(token[1], token[2]);
-                                login = token[1];
-                                if ((newNick != null)) {
-                                    if (!server.isLoginAuthenticated(login)) {
-                                        nickName = newNick;
-                                        sendMsg("/auth_ok " + nickName);
-                                        authenticated = true;
-                                        server.subscribe(this);
-                                        break;
+                                // проверка по базе данных
+                                try {
+                                    // подключаемся к базе данных
+                                    server.getAuthServiceBase().connect();
+                                    // берем никнэйм из базы, если его нет - null
+                                    String newNick = server.getAuthServiceBase()
+                                            .getNicknameByLoginAndPassword(token[1], token[2]);
+                                    login = token[1];
+                                    // проверяем ч
+                                    if ((newNick != null)) {
+                                        if (!server.isLoginAuthenticated(login)) {
+                                            nickName = newNick;
+                                            sendMsg("/auth_ok " + nickName);
+                                            authenticated = true;
+                                            server.subscribe(this);
+                                            break;
+                                        } else {
+                                            sendMsg("Учетная запись уже используется");
+                                        }
                                     } else {
-                                        sendMsg("Учетная запись уже используется");
+                                        sendMsg("Логин/пароль не совпали");
                                     }
-                                } else {
-                                    sendMsg("Логин/пароль не совпали");
+                                } catch (Exception e) {
+                                    e.printStackTrace();
+                                } finally {
+                                    server.getAuthServiceBase().disconnect();
                                 }
                             }
-                            if (str.startsWith("/reg")) {
+
+//    из SimpleAuthService
+//                                String newNick = server.getAuthService()
+//                                        .getNicknameByLoginAndPassword(token[1], token[2]);
+//                                login = token[1];
+//                                if ((newNick != null)) {
+//                                    if (!server.isLoginAuthenticated(login)) {
+//                                        nickName = newNick;
+//                                        sendMsg(Command.AUTH_OK + " " + nickName);
+//                                        authenticated = true;
+//                                        server.subscribe(this);
+//                                        break;
+//                                    } else {
+//                                        sendMsg("Учетная запись уже используется");
+//                                    }
+//                                } else {
+//                                    sendMsg("Логин/пароль не совпали");
+//                                }
+                            //                          }
+                            if (str.startsWith(Command.REG)) {
                                 String[] token = str.split(" ");
                                 if (token.length < 4) {
                                     continue;
                                 }
+                                try {
+                                    server.getAuthServiceBase().connect();
+                                    if (server.getAuthServiceBase()
+                                            .registration(token[1], token[2], token[3])) {
+                                        sendMsg(Command.REG_OK);
+                                    } else {
+                                        sendMsg(Command.REG_NO);
+                                    }
+                                } catch (Exception e) {
+                                    e.printStackTrace();
+                                } finally {
+                                    server.getAuthServiceBase().disconnect();
+                                }
 
+
+//                                if (server.getAuthService()
+//                                        .registration(token[1], token[2], token[3])) {
+//                                    sendMsg(Command.REG_OK);
+//                                } else {
+//                                    sendMsg(Command.REG_NO);
+//                                }
                             }
                         }
                     }
                     // цикл работы
                     while (authenticated) {
+                        socket.setSoTimeout(0);
                         String str = in.readUTF();
-                        if (str.startsWith("/")) {
-                            if (str.equals("/end")) {
-                                sendMsg("/end");
+                        if (str.startsWith(Command.FLASH)) {
+                            if (str.equals(Command.END)) {
+                                sendMsg(Command.END);
                                 break;
                             }
                             if (str.startsWith("/w ")) {
@@ -86,8 +143,14 @@ public class ClientHandler {
                             server.broadcastMsg(this, str);
                         }
                     }
+                    // обработка SocketTimeOutException
+                } catch (SocketTimeoutException e) {
+                    sendMsg(Command.END);
+
                 } catch (IOException e) {
                     e.printStackTrace();
+
+
                 } finally {
                     server.unsubscribe(this);
                     System.out.println("Client disconnected");
