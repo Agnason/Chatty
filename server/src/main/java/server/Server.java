@@ -13,10 +13,12 @@ public class Server {
 
     private List<ClientHandler> clients;
     private AuthService authService;
+    private AuthServiceBase authServiceBase;
 
     public Server() {
         clients = new CopyOnWriteArrayList<>();
         authService = new SimpleAuthService();
+        authServiceBase = new TestServiceBase();
 
         try {
             server = new ServerSocket(PORT);
@@ -100,5 +102,8 @@ public class Server {
 
     public AuthService getAuthService() {
         return authService;
+    }
+    public AuthServiceBase getAuthServiceBase() {
+        return authServiceBase;
     }
 }
