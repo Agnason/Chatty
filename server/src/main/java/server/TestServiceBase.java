@@ -3,8 +3,9 @@ package server;
 import java.sql.*;
 
 public class TestServiceBase implements AuthServiceBase {
-    private static Connection connection;
-    private static Statement stmt;
+    private Connection connection;
+    private Statement stmt;
+    private PreparedStatement psInsert;
 
 //    public static void main(String[] args) {
 //        try {
@@ -54,7 +55,11 @@ public class TestServiceBase implements AuthServiceBase {
             if (rs.getString("login").equals(login) && rs.getString("password").equals(password))
                 return false;
         }
-        stmt.executeUpdate("INSERT INTO auth (login, password, nickname) VALUES ('login','password','nickname');");
+        psInsert = connection.prepareStatement("INSERT INTO auth (login, password, nickname) VALUES (?,?,?);");
+        psInsert.setString(1,login);
+        psInsert.setString(2,password);
+        psInsert.setString(3,nickname);
+        psInsert.execute();
         return true;
     }
 
